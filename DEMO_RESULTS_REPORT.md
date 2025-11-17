@@ -333,5 +333,5 @@ This demonstration successfully proves the **technical feasibility** and **imple
 
 ---
 
-*Report generated automatically by auto_demo_and_report.py*
+*Project Results Report*
 *Generated: 2025-11-17 05:56:57*

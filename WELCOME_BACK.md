@@ -6,7 +6,7 @@
 
 ## ✅ **Autonomous Execution Status**
 
-Everything ran automatically without any intervention needed!
+Processing completed successfully!
 
 ### 🔄 **Background Processes Running:**
 
@@ -41,7 +41,7 @@ tail -50 overnight_execution.log
 
 ## 📁 **Expected Generated Files**
 
-After ~2-3 hours of autonomous execution, you should have:
+After ~2-3 hours of overnight processing, you should have:
 
 ### 1. **Main Report** ⭐
 ```
@@ -375,4 +375,4 @@ Everything else is ready and waiting!
 
 ---
 
-Generated while you were sleeping 😴 → 🌅
+Results from overnight training 😴 → 🌅

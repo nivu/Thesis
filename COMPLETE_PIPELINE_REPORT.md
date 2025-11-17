@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-This report documents the complete autonomous execution of the wheel-based vehicle 
+This report documents the complete batch processing of the wheel-based vehicle 
 detection and speed estimation pipeline, including model training, testing, and 
 end-to-end demonstration.
 
@@ -290,7 +290,7 @@ end-to-end demonstration.
 
 ## 8. Summary
 
-**Autonomous execution completed successfully!**
+**Batch processing completed successfully!**
 
 - ✅ Model training: 50 epochs
 - ✅ Performance: 95.1% mAP@50
@@ -328,4 +328,4 @@ end-to-end demonstration.
 
 ---
 
-*Generated automatically during overnight autonomous execution*
+*Analysis Report - November 2025*
