@@ -1,21 +1,42 @@
-/coordinate_mapping.json
-/coordinate_system_visualization.jpg
-/Literature.txt
-/main_fast.py
-/tracking_data.csv
-/video_2.mp4
-/40kmph.mp4
-/50kmph.mp4
-/__pycache__
-/model.c4d
-/car.png
-/car_1_transformed.csv
-/car_2_transformed.csv
-/car_6_transformed.csv
-/coordinates_visualization.py
-/example.mp4
-/grid_overlay.jpg
-/image_with_full_plane_grid.png
-/image_with_grid_overlay.png
-/simple_coordinates_mapping.py
-/image_undistort.py
+# Large datasets (available from Roboflow - don't push)
+Dataset/
+Wheel_seg-6/
+
+# Generated videos (can regenerate - too large for GitHub)
+reconstructed_videos/
+demo_outputs/
+
+# Training artifacts (keep only best.pt model)
+runs/detect/
+runs/segment/wheel_seg/*.png
+runs/segment/wheel_seg/*.jpg
+runs/segment/wheel_seg/results.png
+
+# Test outputs (can regenerate)
+test_output_*.jpg
+
+# Logs
+*.log
+nohup.out
+auto_demo.log
+overnight_execution.log
+pipeline_summary.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.bak
