@@ -1,5 +1,6 @@
 # Configuration variables
-VIDEO_PATH = "20kmph.mp4"
+# Use traffic analysis video - update this to your desired video file
+VIDEO_PATH = "traffic_analyis_data/Uni_west_1/GOPR0574.MP4"
 RECOGNITION_SIZE = (640, 640)
 DISPLAY_SIZE = (1920, 1080)
 MAPPING_FILE = "coordinate_mapping_2030.json"

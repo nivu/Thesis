@@ -1,0 +1,24 @@
+{
+  "performance": {
+    "bbox_fps": 11.249239108768665,
+    "seg_fps": 11.688712952231436
+  },
+  "detection": {
+    "bbox_detections": 580,
+    "keypoint_detections": 580,
+    "keypoint_valid_rate": 100.0,
+    "seg_detections": 580,
+    "wheels_detected": 0,
+    "seg_usage_rate": 0.0
+  },
+  "accuracy": {
+    "bbox_vs_keypoint": {
+      "mean_speed_diff": 1.670409172112086,
+      "mean_position_diff": 0.3147732854507876
+    },
+    "bbox_vs_seg": {
+      "mean_speed_diff": 0.0,
+      "mean_position_diff": 0.0
+    }
+  }
+}
