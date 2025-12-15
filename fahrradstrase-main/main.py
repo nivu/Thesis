@@ -25,7 +25,14 @@ if __name__ == "__main__":
 
     # Convert to numpy arrays
     world_points = np.array([[point.x, point.y, point.z] for point in selected_label])
-    image_points = np.array([point[1], point[0]] for point in selected_points)
+    image_points = np.array([[point[0], point[1]] for point in selected_points], dtype=np.float32)
+
+    # Check minimum points
+    if len(image_points) < 4:
+        print(f"Error: Need at least 4 points for calibration, got {len(image_points)}")
+        exit(1)
+
+    print(f"\nCalibrating with {len(image_points)} points...")
 
     # Calibrate the image and generate a lookup table
     # Use it with lookup_table[left, top]

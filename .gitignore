@@ -1,6 +1,7 @@
 # Large datasets (available from Roboflow - don't push)
 Dataset/
 Wheel_seg-6/
+traffic_analyis_data/
 
 # Generated videos (can regenerate - too large for GitHub)
 reconstructed_videos/

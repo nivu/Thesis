@@ -1,7 +1,6 @@
 import cv2 as cv
 from dataclasses import dataclass
 import numpy as np
-from tkinter import Tk, OptionMenu, StringVar, Button
 
 
 @dataclass
@@ -29,40 +28,51 @@ class PointSelector:
 
         self.selected_point_3d = []
 
+        # For keyboard-based label selection
+        self.pending_click = None
+        self.current_label_index = 0
+        self.selecting_label = False
+
     def on_mouse_click(self, event, x, y, flags, param):
         if event == cv.EVENT_MOUSEMOVE:
             self.cursor_pos = np.array([x, y])
 
         if event == cv.EVENT_LBUTTONDOWN:
+            if self.selecting_label:
+                # Ignore clicks while selecting a label
+                return
+
             if x > self.width and y < self.size_zoomedArea:
-                x = (
+                pixel_x = (
                     (x - self.width) / self.zoom_factor
                     + self.selected_zoomArea_position[0]
                     - self.sizeZoomArea / 2
                 )
-                y = (
+                pixel_y = (
                     y / self.zoom_factor
                     + self.selected_zoomArea_position[1]
                     - self.sizeZoomArea / 2
                 )
 
-                is_selected = self.select_label()
-                if is_selected:
-                    self.points_3d.remove(self.selected_point_3d[-1])
-                    self.selected_points.append(np.array([x, y]))
-
-                    print("selected points")
-                    for selected_point_3 in self.selected_point_3d:
-                        print(selected_point_3.label)
-
-                    print("avaliable points")
-                    for points_3d in self.points_3d:
-                        print(points_3d.label)
+                # Store pending click and enter label selection mode
+                self.pending_click = np.array([pixel_x, pixel_y])
+                self.selecting_label = True
+                self.current_label_index = 0
+                print("\n--- SELECT LABEL ---")
+                print("Use UP/DOWN arrows to navigate, ENTER to confirm, C to cancel")
+                self._print_current_label()
 
             elif x < self.width and y < self.height:
                 self.selected_zoomArea_position = np.array([x, y])
 
         if event == cv.EVENT_RBUTTONDOWN:
+            if self.selecting_label:
+                # Cancel label selection
+                self.selecting_label = False
+                self.pending_click = None
+                print("Selection canceled")
+                return
+
             if len(self.selected_points) > 0:
                 self.points_3d.append(self.selected_point_3d[-1])
 
@@ -70,6 +80,45 @@ class PointSelector:
                 self.selected_point_3d.pop()
 
                 print("Point deleted")
+
+    def _print_current_label(self):
+        if len(self.points_3d) > 0:
+            point = self.points_3d[self.current_label_index]
+            print(f"  -> [{self.current_label_index + 1}/{len(self.points_3d)}] {point.label} ({point.x:.2f}, {point.y:.2f}, {point.z:.2f})")
+
+    def handle_label_selection_key(self, key):
+        if not self.selecting_label:
+            return
+
+        # UP arrow (various key codes)
+        if key in [0, 82, 119]:  # up arrow, 'w'
+            self.current_label_index = (self.current_label_index - 1) % len(self.points_3d)
+            self._print_current_label()
+
+        # DOWN arrow (various key codes)
+        elif key in [1, 84, 115]:  # down arrow, 's'
+            self.current_label_index = (self.current_label_index + 1) % len(self.points_3d)
+            self._print_current_label()
+
+        # ENTER to confirm
+        elif key in [13, 10]:
+            selected_point = self.points_3d[self.current_label_index]
+            self.selected_point_3d.append(selected_point)
+            self.points_3d.remove(selected_point)
+            self.selected_points.append(self.pending_click)
+
+            print(f"\nConfirmed: {selected_point.label}")
+            print(f"Selected points: {[p.label for p in self.selected_point_3d]}")
+            print(f"Remaining points: {len(self.points_3d)}")
+
+            self.selecting_label = False
+            self.pending_click = None
+
+        # C to cancel
+        elif key == ord('c'):
+            print("Selection canceled")
+            self.selecting_label = False
+            self.pending_click = None
 
     def getZoomview(self):
         frame_copy = self.frame.copy()
@@ -118,49 +167,19 @@ class PointSelector:
 
         return zoomed_region
 
-    def select_label(
-        self,
-    ):
-        master = Tk()
-        master.title("Label Selector")
-
-        variable = StringVar(master)
-        labels = []
-        for points_3d in self.points_3d:
-            labels.append(points_3d.label)
-
-        variable.set(labels[0])  # default value
-
-        w = OptionMenu(master, variable, *labels)
-        w.pack()
-
-        def ok():
-            selected_label = variable.get()
-            for points_3d in self.points_3d:
-                if points_3d.label == selected_label:
-                    self.selected_point_3d.append(points_3d)
-                    break
-
-            self.is_selected = True
-            master.destroy()
-
-        def cancel():
-            print("Selection canceled.")
-            self.is_selected = False
-            master.destroy()
-
-        ok_button = Button(master, text="OK", command=ok)
-        ok_button.pack(side="right", padx=20, pady=20)
-
-        cancel_button = Button(master, text="Cancel", command=cancel)
-        cancel_button.pack(side="left", padx=20, pady=20)
-
-        master.mainloop()
-        return self.is_selected
-
     def selectPoints(
         self,
     ):
+        print("\n" + "=" * 50)
+        print("CALIBRATION POINT SELECTOR")
+        print("=" * 50)
+        print("1. Click on LEFT image to select zoom area")
+        print("2. Click on RIGHT (zoomed) image to mark a point")
+        print("3. Use W/S or UP/DOWN to select label, ENTER to confirm")
+        print("4. Right-click to undo last point")
+        print("5. Press ESC to finish")
+        print("=" * 50 + "\n")
+
         cv.namedWindow("select_points", cv.WINDOW_NORMAL)
         cv.setMouseCallback("select_points", self.on_mouse_click)
 
@@ -210,13 +229,44 @@ class PointSelector:
                     -1,
                 )
 
+            # Show label selection overlay when in selection mode
+            if self.selecting_label and len(self.points_3d) > 0:
+                overlay = main_window.copy()
+                cv.rectangle(overlay, (10, 10), (400, 150), (0, 0, 0), -1)
+                cv.addWeighted(overlay, 0.7, main_window, 0.3, 0, main_window)
+
+                cv.putText(main_window, "SELECT LABEL (W/S or arrows, ENTER to confirm)",
+                           (20, 35), cv.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+
+                point = self.points_3d[self.current_label_index]
+                label_text = f"[{self.current_label_index + 1}/{len(self.points_3d)}] {point.label}"
+                coord_text = f"({point.x:.2f}, {point.y:.2f}, {point.z:.2f})"
+
+                cv.putText(main_window, label_text, (20, 70),
+                           cv.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+                cv.putText(main_window, coord_text, (20, 100),
+                           cv.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
+                cv.putText(main_window, "Press C or Right-click to cancel", (20, 130),
+                           cv.FONT_HERSHEY_SIMPLEX, 0.4, (150, 150, 150), 1)
+
             cv.imshow("select_points", main_window)
             key = cv.waitKey(1) & 0xFF
 
+            # Handle keyboard input for label selection
+            if self.selecting_label:
+                self.handle_label_selection_key(key)
+
             if key == 27:  # 27 is the ASCII value for the "Esc" key
-                print("Esc key pressed. Exiting.")
-                cv.destroyAllWindows()
-                return self.selected_point_3d, self.selected_points
+                if self.selecting_label:
+                    # Cancel label selection first
+                    self.selecting_label = False
+                    self.pending_click = None
+                    print("Selection canceled")
+                else:
+                    print("Esc key pressed. Exiting.")
+                    cv.destroyAllWindows()
+                    return self.selected_point_3d, self.selected_points
+
             if len(self.points_3d) == 0:
                 print("All points selected.")
                 cv.destroyAllWindows()
