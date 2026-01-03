@@ -16,9 +16,11 @@ VIDEO_PATH = os.path.join(BASE_DIR, "videos", "traffic.mp4")
 
 # Model paths
 MODEL_2D_PATH = os.path.join(BASE_DIR, "best.pt")  # Existing YOLOv8 pose model
-WEIGHTS_DIR = os.path.join(PIPELINE_DIR, "weights")
-MODEL_3D_YOLO = os.path.join(WEIGHTS_DIR, "yolov11.pt")
-MODEL_3D_MULTIBIN = os.path.join(WEIGHTS_DIR, "multibin_model.pt")
+
+# YOLOx3D paths (3D detection with monocular depth)
+YOLOX3D_DIR = os.path.join(BASE_DIR, "YOLOx3D")
+YOLOX3D_CONFIG = os.path.join(YOLOX3D_DIR, "config", "default.yaml")
+YOLOX3D_WEIGHTS_DIR = os.path.join(YOLOX3D_DIR, "weights")
 
 # Calibration files
 CALIBRATION_FILE = os.path.join(BASE_DIR, "gopro_calibration_fisheye.npz")
@@ -53,4 +55,4 @@ OUTPUT_COMPARISON_CSV = os.path.join(OUTPUT_DIR, "3dbb_vs_2d_comparison.csv")
 
 # Ensure output directory exists
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-os.makedirs(WEIGHTS_DIR, exist_ok=True)
+os.makedirs(YOLOX3D_WEIGHTS_DIR, exist_ok=True)

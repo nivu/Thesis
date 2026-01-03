@@ -21,7 +21,9 @@ import os
 from collections import defaultdict
 
 # Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+COMPARISON_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(COMPARISON_DIR)
+sys.path.insert(0, PROJECT_ROOT)
 
 from ultralytics import YOLO
 from utils import (
@@ -29,10 +31,23 @@ from utils import (
     CoordinateTransformer, calculate_real_world_coordinates,
     SpeedTracker, CSVExporter
 )
-from config import (
-    VIDEO_PATH, RECOGNITION_SIZE, DISPLAY_SIZE, MAPPING_FILE,
-    VEHICLE_MODEL_PATH, WHEEL_SEG_MODEL_PATH, CALIBRATION_FILE
-)
+
+# Import from local comparison config, not project root config
+import importlib.util
+spec = importlib.util.spec_from_file_location("comparison_config", os.path.join(COMPARISON_DIR, "config.py"))
+comparison_config = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(comparison_config)
+
+VIDEO_PATH = comparison_config.VIDEO_PATH
+RECOGNITION_SIZE = comparison_config.RECOGNITION_SIZE
+DISPLAY_SIZE = comparison_config.DISPLAY_SIZE
+MAPPING_FILE = comparison_config.MAPPING_FILE
+VEHICLE_MODEL_PATH = comparison_config.VEHICLE_MODEL_PATH
+WHEEL_SEG_MODEL_PATH = comparison_config.WHEEL_SEG_MODEL_PATH
+CALIBRATION_FILE = comparison_config.CALIBRATION_FILE
+
+# Import 3DBB corner-based speed estimator
+from comparison.speed_from_corners import CornerBasedSpeedEstimator
 
 
 class WheelContactPointExtractor:
@@ -187,13 +202,27 @@ class ApproachComparator:
         self.bbox_results = defaultdict(list)
         self.keypoint_results = defaultdict(list)
         self.seg_results = defaultdict(list)
+        self.corner3d_results = defaultdict(list)
+
+        # 3DBB corner-based speed estimator
+        self.corner_estimator = None
+        self.corner3d_data_file = os.path.join(os.path.dirname(__file__), '3dbb_results.json')
+        if os.path.exists(self.corner3d_data_file):
+            with open(self.corner3d_data_file, 'r') as f:
+                self.corner3d_data = json.load(f)
+            self.corner_estimator = CornerBasedSpeedEstimator()
+            print(f"Loaded 3DBB corner data: {len(self.corner3d_data)} frames")
+        else:
+            self.corner3d_data = []
+            print("Warning: 3DBB results not found, corner-based approach disabled")
 
         # Metrics
         self.metrics = {
             'bbox': {'frames': 0, 'detections': 0, 'total_time': 0},
             'keypoint': {'frames': 0, 'detections': 0, 'valid_keypoints': 0, 'total_time': 0},
             'seg': {'frames': 0, 'detections': 0, 'wheels_detected': 0,
-                   'seg_used': 0, 'fallback_used': 0, 'total_time': 0}
+                   'seg_used': 0, 'fallback_used': 0, 'total_time': 0},
+            'corner3d': {'frames': 0, 'detections': 0, 'vehicles_tracked': 0, 'total_time': 0}
         }
 
         # Calibration bounds (filter unrealistic coordinates)
@@ -410,6 +439,44 @@ class ApproachComparator:
                             'speed': speed
                         })
 
+            # ========== 3D BOUNDING BOX CORNER APPROACH ==========
+            if self.corner_estimator and frame_count <= len(self.corner3d_data):
+                corner3d_start = time.time()
+
+                # Get frame data from pre-computed 3DBB results
+                frame_idx = frame_count - 1  # 0-indexed
+                if frame_idx < len(self.corner3d_data):
+                    frame_data = self.corner3d_data[frame_idx]
+                    detections = frame_data.get('detections', [])
+                    frame_fps = frame_data.get('fps', fps)
+
+                    # Process with corner-based estimator
+                    corner_speeds = self.corner_estimator.process_frame(
+                        frame_count, detections, frame_fps
+                    )
+
+                    self.metrics['corner3d']['frames'] += 1
+                    self.metrics['corner3d']['detections'] += len(detections)
+
+                    for speed_data in corner_speeds:
+                        track_id = speed_data['track_id']
+                        speed = speed_data['speed_kmh']
+                        centroid = speed_data.get('centroid', {})
+
+                        # Store results (using camera frame coordinates)
+                        if speed <= self.max_speed:
+                            self.corner3d_results[track_id].append({
+                                'frame': frame_count,
+                                'world_x': centroid.get('x', 0),
+                                'world_y': centroid.get('y', 0),
+                                'speed': speed,
+                                'depth': speed_data.get('depth', 0),
+                                'corners': speed_data.get('corners', [])
+                            })
+
+                corner3d_time = time.time() - corner3d_start
+                self.metrics['corner3d']['total_time'] += corner3d_time
+
             # Visualization (side by side)
             if show_video:
                 vis_frame = self.create_comparison_visualization(
@@ -493,9 +560,9 @@ class ApproachComparator:
         return vis
 
     def generate_comparison_report(self):
-        """Generate detailed comparison metrics for all three approaches."""
+        """Generate detailed comparison metrics for all four approaches."""
         print("\n" + "=" * 70)
-        print("COMPARISON REPORT: BBox vs Keypoint vs Segmentation Approaches")
+        print("COMPARISON REPORT: BBox vs Keypoint vs Segmentation vs 3DBB Corner")
         print("=" * 70)
 
         # Performance metrics
@@ -503,8 +570,10 @@ class ApproachComparator:
         print("-" * 50)
         bbox_fps = self.metrics['bbox']['frames'] / self.metrics['bbox']['total_time'] if self.metrics['bbox']['total_time'] > 0 else 0
         seg_fps = self.metrics['seg']['frames'] / self.metrics['seg']['total_time'] if self.metrics['seg']['total_time'] > 0 else 0
+        corner3d_fps = self.metrics['corner3d']['frames'] / self.metrics['corner3d']['total_time'] if self.metrics['corner3d']['total_time'] > 0 else 0
         print(f"BBox Approach:         {bbox_fps:.2f} FPS")
         print(f"Segmentation Approach: {seg_fps:.2f} FPS")
+        print(f"3DBB Corner Approach:  {corner3d_fps:.2f} FPS (post-processing only)")
 
         # Detection metrics
         print("\n2. DETECTION METRICS")
@@ -516,6 +585,9 @@ class ApproachComparator:
         print(f"  Wheels Detected:         {self.metrics['seg']['wheels_detected']}")
         print(f"  Segmentation Used:       {self.metrics['seg']['seg_used']} times")
         print(f"  Fallback to BBox:        {self.metrics['seg']['fallback_used']} times")
+
+        print(f"3DBB Corner Detections:    {self.metrics['corner3d']['detections']}")
+        print(f"  Frames Processed:        {self.metrics['corner3d']['frames']}")
 
         seg_rate = self.metrics['seg']['seg_used'] / (self.metrics['seg']['seg_used'] + self.metrics['seg']['fallback_used']) * 100 if (self.metrics['seg']['seg_used'] + self.metrics['seg']['fallback_used']) > 0 else 0
         kp_rate = self.metrics['keypoint']['valid_keypoints'] / self.metrics['keypoint']['detections'] * 100 if self.metrics['keypoint']['detections'] > 0 else 0
@@ -588,8 +660,41 @@ class ApproachComparator:
             print(f"Position Difference (BBox vs Seg):")
             print(f"  Mean: {np.mean(bbox_seg_pos_diffs):.4f} m")
 
+        # 3DBB Corner Analysis
+        print("\n5. 3D BOUNDING BOX CORNER APPROACH ANALYSIS")
+        print("-" * 50)
+
+        if self.corner3d_results:
+            corner3d_all_speeds = []
+            for track_id, results in self.corner3d_results.items():
+                speeds = [r['speed'] for r in results if r['speed'] > 0]
+                corner3d_all_speeds.extend(speeds)
+
+            if corner3d_all_speeds:
+                print(f"3DBB Corner Speed Statistics:")
+                print(f"  Total Measurements:  {len(corner3d_all_speeds)}")
+                print(f"  Vehicles Tracked:    {len(self.corner3d_results)}")
+                print(f"  Mean Speed:          {np.mean(corner3d_all_speeds):.2f} km/h")
+                print(f"  Median Speed:        {np.median(corner3d_all_speeds):.2f} km/h")
+                print(f"  Std Deviation:       {np.std(corner3d_all_speeds):.2f} km/h")
+                print(f"  Range:               {np.min(corner3d_all_speeds):.2f} - {np.max(corner3d_all_speeds):.2f} km/h")
+
+                # Top vehicles by sample count
+                print("\n  Per-vehicle breakdown (top 5 by samples):")
+                vehicle_stats = []
+                for track_id, results in self.corner3d_results.items():
+                    speeds = [r['speed'] for r in results if r['speed'] > 0]
+                    if speeds:
+                        vehicle_stats.append((track_id, len(speeds), np.mean(speeds), np.median(speeds)))
+
+                vehicle_stats.sort(key=lambda x: x[1], reverse=True)
+                for track_id, count, mean, median in vehicle_stats[:5]:
+                    print(f"    {track_id}: {count} samples, mean={mean:.1f}, median={median:.1f} km/h")
+        else:
+            print("No 3DBB corner data available")
+
         # Per-vehicle analysis
-        print("\n5. PER-VEHICLE SPEED ANALYSIS (Top 5 vehicles with valid data)")
+        print("\n6. PER-VEHICLE SPEED ANALYSIS (Top 5 vehicles with valid data)")
         print("-" * 50)
 
         valid_vehicles = []
@@ -625,6 +730,7 @@ class ApproachComparator:
         print(f"  1. BBox (Baseline):    Always available, uses bottom-center of box")
         print(f"  2. Keypoint:           Uses wheel keypoints from pose model ({kp_rate:.1f}% valid)")
         print(f"  3. Segmentation:       Uses wheel masks ({seg_rate:.1f}% detected)")
+        print(f"  4. 3DBB Corners:       Uses 4 bottom corners of 3D bounding box")
 
         if bbox_kp_pos_diffs:
             avg_kp_diff = np.mean(bbox_kp_pos_diffs)
@@ -634,10 +740,30 @@ class ApproachComparator:
             else:
                 print("  -> Keypoints provide different (potentially more accurate) localization")
 
+        # Calculate 3DBB corner stats for report
+        corner3d_stats = {}
+        if self.corner3d_results:
+            corner3d_all_speeds = []
+            for track_id, results in self.corner3d_results.items():
+                speeds = [r['speed'] for r in results if r['speed'] > 0]
+                corner3d_all_speeds.extend(speeds)
+
+            if corner3d_all_speeds:
+                corner3d_stats = {
+                    'total_measurements': len(corner3d_all_speeds),
+                    'vehicles_tracked': len(self.corner3d_results),
+                    'mean_speed': float(np.mean(corner3d_all_speeds)),
+                    'median_speed': float(np.median(corner3d_all_speeds)),
+                    'std_speed': float(np.std(corner3d_all_speeds)),
+                    'min_speed': float(np.min(corner3d_all_speeds)),
+                    'max_speed': float(np.max(corner3d_all_speeds))
+                }
+
         report = {
             'performance': {
                 'bbox_fps': bbox_fps,
-                'seg_fps': seg_fps
+                'seg_fps': seg_fps,
+                'corner3d_fps': corner3d_fps
             },
             'detection': {
                 'bbox_detections': self.metrics['bbox']['detections'],
@@ -645,7 +771,9 @@ class ApproachComparator:
                 'keypoint_valid_rate': kp_rate,
                 'seg_detections': self.metrics['seg']['detections'],
                 'wheels_detected': self.metrics['seg']['wheels_detected'],
-                'seg_usage_rate': seg_rate
+                'seg_usage_rate': seg_rate,
+                'corner3d_detections': self.metrics['corner3d']['detections'],
+                'corner3d_frames': self.metrics['corner3d']['frames']
             },
             'accuracy': {
                 'bbox_vs_keypoint': {
@@ -656,7 +784,8 @@ class ApproachComparator:
                     'mean_speed_diff': float(np.mean(bbox_seg_speed_diffs)) if bbox_seg_speed_diffs else None,
                     'mean_position_diff': float(np.mean(bbox_seg_pos_diffs)) if bbox_seg_pos_diffs else None
                 }
-            }
+            },
+            'corner3d_analysis': corner3d_stats
         }
 
         # Save report
