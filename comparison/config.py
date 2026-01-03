@@ -2,14 +2,16 @@
 import os
 
 # Paths relative to project root
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+COMPARISON_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(COMPARISON_DIR)
+APPROACHES_DIR = os.path.join(PROJECT_ROOT, "approaches")
 
 # Video settings
 VIDEO_PATH = os.path.join(PROJECT_ROOT, "traffic_analyis_data/Uni_west_1/GOPR0574.MP4")
 
-# Model settings
-VEHICLE_MODEL_PATH = os.path.join(PROJECT_ROOT, "best.pt")
-WHEEL_SEG_MODEL_PATH = os.path.join(PROJECT_ROOT, "runs/segment/wheel_seg/weights/best.pt")
+# Model settings - reference models from approaches folders
+VEHICLE_MODEL_PATH = os.path.join(APPROACHES_DIR, "bbox_pipeline/models/best.pt")
+WHEEL_SEG_MODEL_PATH = os.path.join(APPROACHES_DIR, "seg_pipeline/models/wheel_seg_best.pt")
 
 # Calibration settings
 CALIBRATION_FILE = os.path.join(PROJECT_ROOT, "gopro_calibration_fisheye.npz")

@@ -1,0 +1,90 @@
+{
+  "position_comparisons": {
+    "bbox vs keypoint": {
+      "n_common": 425,
+      "mean_diff_m": 0.8232630225666098,
+      "std_diff_m": 0.6180106304192837,
+      "max_diff_m": 4.163549539812968
+    },
+    "bbox vs segmentation": {
+      "n_common": 428,
+      "mean_diff_m": 0.33814644774331204,
+      "std_diff_m": 0.25765438839721716,
+      "max_diff_m": 1.6994815205905238
+    },
+    "bbox vs 3dbb": {
+      "n_common": 430,
+      "mean_diff_m": 1.3575876582201973e-07,
+      "std_diff_m": 1.6803954857363225e-07,
+      "max_diff_m": 1.2918348942024045e-06
+    },
+    "keypoint vs segmentation": {
+      "n_common": 425,
+      "mean_diff_m": 0.744316823280187,
+      "std_diff_m": 0.7932290676979575,
+      "max_diff_m": 3.217594852799458
+    },
+    "keypoint vs 3dbb": {
+      "n_common": 425,
+      "mean_diff_m": 0.823263019182614,
+      "std_diff_m": 0.6180106194825852,
+      "max_diff_m": 4.1635486151754275
+    },
+    "segmentation vs 3dbb": {
+      "n_common": 428,
+      "mean_diff_m": 0.33814643744917466,
+      "std_diff_m": 0.2576543765197406,
+      "max_diff_m": 1.6994815067327234
+    }
+  },
+  "speed_comparisons": {
+    "bbox vs keypoint": {
+      "n_common": 422,
+      "mean_diff_kmh": 12.088333999147425,
+      "std_diff_kmh": 12.468811490522691
+    },
+    "bbox vs segmentation": {
+      "n_common": 425,
+      "mean_diff_kmh": 1.81832988723091,
+      "std_diff_kmh": 1.9820129283600283
+    },
+    "bbox vs 3dbb": {
+      "n_common": 427,
+      "mean_diff_kmh": 2.1871020286357037e-06,
+      "std_diff_kmh": 2.38172142407575e-06
+    },
+    "keypoint vs segmentation": {
+      "n_common": 422,
+      "mean_diff_kmh": 10.861536301613988,
+      "std_diff_kmh": 12.222897583443718
+    },
+    "keypoint vs 3dbb": {
+      "n_common": 422,
+      "mean_diff_kmh": 12.088334302722107,
+      "std_diff_kmh": 12.468811422651479
+    },
+    "segmentation vs 3dbb": {
+      "n_common": 425,
+      "mean_diff_kmh": 1.8183301620372734,
+      "std_diff_kmh": 1.98201317653033
+    }
+  },
+  "detection_counts": {
+    "bbox": {
+      "records": 430,
+      "vehicles": 6
+    },
+    "keypoint": {
+      "records": 425,
+      "vehicles": 6
+    },
+    "segmentation": {
+      "records": 428,
+      "vehicles": 6
+    },
+    "3dbb": {
+      "records": 430,
+      "vehicles": 6
+    }
+  }
+}

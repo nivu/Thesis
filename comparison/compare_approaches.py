@@ -29,7 +29,12 @@ from utils import (
     CoordinateTransformer, calculate_real_world_coordinates,
     SpeedTracker, CSVExporter
 )
-from config import (
+# Import from comparison config, not root config
+import sys
+import os
+comparison_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, comparison_dir)
+from comparison.config import (
     VIDEO_PATH, RECOGNITION_SIZE, DISPLAY_SIZE, MAPPING_FILE,
     VEHICLE_MODEL_PATH, WHEEL_SEG_MODEL_PATH, CALIBRATION_FILE
 )
