@@ -1,0 +1,17 @@
+device: auto
+
+depth:
+  size: small
+  calibration_file: calibration/depth_calibration.json
+
+yolo:
+  classes: []  # Empty list to detect all classes
+  size: nano
+  weights: null  # Use pretrained model
+
+bbox_3d:
+  weights_path: 'weights/resnet18.pkl'
+  class_dimensions_file: calibration/class_dimensions.json
+  num_bins: 2
+
+kitti_path: KITTI_dataset
