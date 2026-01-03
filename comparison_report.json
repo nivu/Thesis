@@ -1,7 +1,8 @@
 {
   "performance": {
-    "bbox_fps": 11.249239108768665,
-    "seg_fps": 11.688712952231436
+    "bbox_fps": 12.151404683427282,
+    "seg_fps": 13.390410102827001,
+    "corner3d_fps": 8737.5872341312
   },
   "detection": {
     "bbox_detections": 580,
@@ -9,7 +10,9 @@
     "keypoint_valid_rate": 100.0,
     "seg_detections": 580,
     "wheels_detected": 0,
-    "seg_usage_rate": 0.0
+    "seg_usage_rate": 0.0,
+    "corner3d_detections": 413,
+    "corner3d_frames": 100
   },
   "accuracy": {
     "bbox_vs_keypoint": {
@@ -20,5 +23,14 @@
       "mean_speed_diff": 0.0,
       "mean_position_diff": 0.0
     }
+  },
+  "corner3d_analysis": {
+    "total_measurements": 181,
+    "vehicles_tracked": 43,
+    "mean_speed": 67.4472500924996,
+    "median_speed": 64.52943513110712,
+    "std_speed": 38.198143359516436,
+    "min_speed": 3.26816582667095,
+    "max_speed": 148.88225448091097
   }
 }
